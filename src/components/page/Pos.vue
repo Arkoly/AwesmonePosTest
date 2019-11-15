@@ -10,8 +10,8 @@
               <el-table-column prop="price" label="金额" width="70"></el-table-column>
               <el-table-column label="操作" width="100" fixed="right">
                 <template slot-scope="scope">
-                  <el-button type="text" size="small"  @click="delSingleGood(scope.row)">删除</el-button>
-                  <el-button type="text" size="small" @click="addOrderList(scope.row)">增加</el-button>
+                  <el-button type="text" size="small"  @click="delSingleGood(scope.row,tableData)">删除</el-button>
+                  <el-button type="text" size="small" @click="addOrderList(scope.row,tableData)">增加</el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -20,13 +20,25 @@
                 <span><small>金额：</small>{{totalMoney}}元</span>
             </div>
             <div class="div-btn">
-              <el-button type="warning">挂单</el-button>
+              <el-button type="warning" @click="pendingOrder(pendingBox.pendingData)">挂单</el-button>
               <el-button type="danger" @click="delAllGoods()">删除</el-button>
               <el-button type="success" @click="checkout()">结账</el-button>
             </div>
           </el-tab-pane>
           <el-tab-pane label="挂单">
-            挂单
+            <el-table :data="pendingBox.pendingData" border style="width:100%">
+              <el-table-column prop="goodsName" label="商品名称"></el-table-column>
+              <el-table-column prop="count" label="数量" width="50"></el-table-column>
+              <el-table-column prop="price" label="金额" width="70"></el-table-column>
+            </el-table>
+            <div class="total-goods">
+                <span><small>数量：</small>{{pendingBox.pendingCount}}</span>
+                <span><small>金额：</small>{{pendingBox.pendingMoney}}元</span>
+            </div>
+            <div class="div-btn">
+              <el-button type="danger" @click="delAllGoods()">删除</el-button>
+              <el-button type="success" @click="checkout()">结账</el-button>
+            </div>
           </el-tab-pane>
           <el-tab-pane label="外卖">
             外卖
@@ -38,7 +50,7 @@
             <div class="title">常用商品</div>
             <div class="often-goods-list">
               <ul>
-                <li v-for="goods in oftenGoods" @click="addOrderList(goods)">
+                <li v-for="goods in oftenGoods" @click="addOrderList(goods,tableData)">
                   <span>{{goods.goodsName}}</span>
                   <span class="o-price">￥{{goods.price}}元</span>
                 </li>
@@ -49,7 +61,7 @@
             <el-tabs>
               <el-tab-pane label="汉堡">
                 <ul class='cookList'>
-                    <li v-for="goods in type0Goods" @click="addOrderList(goods)">
+                    <li v-for="goods in type0Goods" @click="addOrderList(goods,tableData)">
                         <span class="foodImg"><img :src="goods.goodsImg" width="100%"></span>
                         <span class="foodName">{{goods.goodsName}}</span>
                         <span class="foodPrice">￥{{goods.price}}元</span>
@@ -58,7 +70,7 @@
               </el-tab-pane>
               <el-tab-pane label="小吃">
                 <ul class='cookList'>
-                    <li v-for="goods in type1Goods" @click="addOrderList(goods)">
+                    <li v-for="goods in type1Goods" @click="addOrderList(goods,tableData)">
                         <span class="foodImg"><img :src="goods.goodsImg" width="100%"></span>
                         <span class="foodName">{{goods.goodsName}}</span>
                         <span class="foodPrice">￥{{goods.price}}元</span>
@@ -66,7 +78,7 @@
                 </ul>
               </el-tab-pane><el-tab-pane label="饮料">
                 <ul class='cookList'>
-                    <li v-for="goods in type2Goods" @click="addOrderList(goods)">
+                    <li v-for="goods in type2Goods" @click="addOrderList(goods,tableData)">
                         <span class="foodImg"><img :src="goods.goodsImg" width="100%"></span>
                         <span class="foodName">{{goods.goodsName}}</span>
                         <span class="foodPrice">￥{{goods.price}}元</span>
@@ -75,7 +87,7 @@
               </el-tab-pane>
               <el-tab-pane label="套餐">
                <ul class='cookList'>
-                    <li v-for="goods in type3Goods" @click="addOrderList(goods)">
+                    <li v-for="goods in type3Goods" @click="addOrderList(goods,tableData)">
                         <span class="foodImg"><img :src="goods.goodsImg" width="100%"></span>
                         <span class="foodName">{{goods.goodsName}}</span>
                         <span class="foodPrice">￥{{goods.price}}元</span>
@@ -105,6 +117,11 @@ export default {
       type3Goods:[],
       totalCount: 0,
       totalMoney: 0,
+      pendingBox:{
+        pendingData:[],
+        pendingCount: 0,
+        pendingMoney: 0,
+      },
     }
   },
   // computed:{
@@ -156,24 +173,40 @@ export default {
           this.type1Goods = mod.typeGoods[1];
           this.type2Goods = mod.typeGoods[2];
           this.type3Goods = mod.typeGoods[3];
-          console.log(mod.typeGoods)
+          // console.log(mod.typeGoods)
         }
       })
-    })
+    });
+    
+
+  },
+  computed:{
   },
   mounted:function(){
+    this.resizeHeight();
+    this.pendingBox.pendingData = this.getPendingData()
     
-        var orderHight = document.body.clientHeight;
-       window.onresize=function(){
-          orderHight = document.body.clientHeight;
-          console.log(orderHight)
-          document.getElementById('pos').style.height = orderHight +'px'
-       }
-       
-        document.getElementById('pos').style.height = orderHight +'px'
+        
+  },
+  updated:function(){
   },
   methods:{
-    addOrderList(goods){
+    getPendingData(){
+      let obj = localStorage.getItem('localOrder');
+      return JSON.parse(obj);
+    },
+    //点击挂单后，将tableData的点餐数据保存到浏览器中
+    pendingOrder(data){
+      if(this.tableData){
+          //将数组对象转化为字符串
+          let str = JSON.stringify(this.tableData)
+          localStorage.setItem('localOrder', str);
+          this.pendingBox.pendingData = this.tableData;
+          this.tableData = [];
+      }
+      this.getAllMoney(data);
+    },
+    addOrderList(goods,data){
       let isHave = false;
       //判断左侧点餐列表中是否存在这个商品
       for(let i=0;i<this.tableData.length;i++){
@@ -192,9 +225,9 @@ export default {
         let newGoods = {goodsId:goods.goodsId,goodsName:goods.goodsName,price:goods.price,count:1}
         this.tableData.push(newGoods)
       }
-      this.getAllMoney();
+      this.getAllMoney(data);
     },
-    delSingleGood(goods){
+    delSingleGood(goods,data){
       // this.tableData = this.tableData.filter(o => o.goodsId != goods.goodsId);
       let arr = this.tableData.filter(o => o.goodsId == goods.goodsId)
       if(arr[0].count<=1){
@@ -202,23 +235,39 @@ export default {
       }else{
         arr[0].count--;
       }
-      this.getAllMoney();
+      this.getAllMoney(data);
     },
     delAllGoods(){
-      this.totalCount = 0;
-      this.totalMoney = 0;
-      this.tableData=[];
+      if(this.tableData){
+        this.totalCount = 0;
+        this.totalMoney = 0;
+        this.tableData=[];
+      }
+      if(this.pendingBox.pendingData){
+        this.pendingBox.pendingData = [];
+        this.pendingBox.pendingCount= 0;
+        this.pendingBox.pendingMoney= 0;
+      }
     },
     //汇总全部金额和数量
-    getAllMoney(){
+    getAllMoney(data){
       this.totalCount = 0;
       this.totalMoney = 0;
+      this.pendingBox.pendingCount= 0;
+      this.pendingBox.pendingMoney= 0;
       //进行数量和价格的汇总计算
-      if(this.tableData){
-        this.tableData.forEach((element) => {
-        this.totalCount = this.totalCount+element.count;
-        this.totalMoney = this.totalMoney + (element.price*element.count);
-      });
+      if(data===this.tableData){
+        data.forEach((element) => {
+          this.totalCount = this.totalCount+element.count;
+          this.totalMoney = this.totalMoney + (element.price*element.count);
+        });
+      }else{
+        console.log('pendingData')
+        console.log(this.pendingBox.pendingData)
+        data.forEach((element) => {
+          this.pendingBox.pendingCount = this.pendingBox.pendingCount+element.count;
+          this.pendingBox.pendingMoney = this.pendingBox.pendingMoney + (element.price*element.count);
+        });
       }
     },
     checkout(){
@@ -233,6 +282,16 @@ export default {
       }else{
         this.$message.error('遇到错误，无法完成结账！');
       }
+    },
+    resizeHeight(){
+      var orderHight = document.body.clientHeight;
+      window.onresize=function(){
+          orderHight = document.body.clientHeight;
+          console.log(orderHight)
+          document.getElementById('pos').style.height = orderHight +'px'
+      }
+       
+      document.getElementById('pos').style.height = orderHight +'px'
     }
   }
 }
