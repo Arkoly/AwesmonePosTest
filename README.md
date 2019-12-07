@@ -18,6 +18,8 @@ npm run build
 npm run build --report
 ```
 
+完成了挂单功能。。可能还有BUG
+
 点击dist/index.html可以直接本地运行
 
 For a detailed explanation on how things work, check out the [guide](http://vuejs-templates.github.io/webpack/) and [docs for vue-loader](http://vuejs.github.io/vue-loader).
